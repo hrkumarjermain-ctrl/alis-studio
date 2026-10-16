@@ -38,8 +38,8 @@ class Krea2StreamBackend(Backend):
     info = "Streams the transformer from disk block by block — 1024² fits in 16 GB. Runs in its own process."
     prompt_note = "Understands Korean and other languages natively (Qwen3 text encoder)."
     min_ram_gib = 16
-    variants = [{"id": "q8-4step", "label": "q8 · 4-step · streaming"},
-                {"id": "q8-4step-refusal-v2-075", "label": "q8 · 4-step · refusal-reduction v2 @ 0.75 baked"},
+    variants = [{"id": "q8-4step-refusal-v2-075", "label": "q8 · 4-step · refusal-reduction v2 @ 0.75 baked"},
+                {"id": "q8-4step", "label": "q8 · 4-step · streaming"},
                 {"id": "q8-4step-refusal-v2", "label": "q8 · 4-step · refusal-reduction v2 @ 1.00 baked"}]
     params = [
         {"key": "resolution", "label": "Resolution", "type": "resolution", "group": "Output",
@@ -63,6 +63,11 @@ class Krea2StreamBackend(Backend):
     @classmethod
     def is_available(cls) -> bool:
         return os.path.exists(_BIN) and os.path.isdir(os.path.join(_MODEL, "transformer"))
+
+    load_message = "Loading model, LoRAs and encoding the prompt… (~25 s before step 1)"
+
+    def will_load(self, variant):
+        return True   # every render is a fresh process: load + prompt encode always precede step 1
 
     def is_installed(self, variant):
         return os.path.isdir(os.path.join(_VARIANT_DIRS.get(variant, ""), "transformer"))

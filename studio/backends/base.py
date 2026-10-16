@@ -30,6 +30,7 @@ class Backend:
     catalog: list[dict] = []     # downloadable builds (see studio/registry conventions); empty = managed elsewhere
     min_ram_gib = 0              # unified-memory floor to run this model acceptably; drives the "recommended for your Mac" hint
     supports_preview = False     # True if generate() can stream in-progress frames (the UI shows a "Live preview" toggle)
+    load_message = ""            # status shown while will_load() is True; default mentions a possible first-use download
 
     @classmethod
     def is_available(cls) -> bool:

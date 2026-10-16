@@ -637,7 +637,7 @@ class Handler(BaseHTTPRequestHandler):
                 def _job():           # all MLX work (load, denoise, NSFW filter) on the one GPU thread
                     if backend.will_load(variant):   # model not in memory → load (first ever use also downloads)
                         safe_emit({"type": "status",
-                                   "message": f"Loading {backend.label}… (first use may download weights)"})
+                                   "message": backend.load_message or f"Loading {backend.label}… (first use may download weights)"})
                         _free_other_backends(backend)   # constrained Macs: don't stack two pipelines
                     elif params.get("loras"):   # applying a LoRA set inside generate — say so (mflux
                         # re-fuses the model; Krea 2 swaps a runtime branch — both are a short pause)
