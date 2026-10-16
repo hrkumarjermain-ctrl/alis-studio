@@ -27,7 +27,8 @@ _BIN = os.environ.get("KREA2_STREAM_BIN",
 _MODEL = os.environ.get("KREA2_STREAM_MODEL",
                         os.path.expanduser("~/ComfyUI-Shared/models/mlx/mh73772__krea-2-turbo-mflux-q8-4step"))
 # variant id -> snapshot dir; baked-LoRA variants are hard-linked siblings made by tools/bake_krea2_lora.py
-_VARIANT_DIRS = {"q8-4step": _MODEL, "q8-4step-refusal-v2": _MODEL + "__refusal-v2"}
+_VARIANT_DIRS = {"q8-4step": _MODEL, "q8-4step-refusal-v2": _MODEL + "__refusal-v2",
+                 "q8-4step-refusal-v2-075": _MODEL + "__refusal-v2-0.75"}
 _PROGRESS = re.compile(r"(\d+)/(\d+) \[")   # tqdm: " 50%|█████     | 2/4 [00:20<00:20, ...]"
 
 
@@ -38,7 +39,8 @@ class Krea2StreamBackend(Backend):
     prompt_note = "Understands Korean and other languages natively (Qwen3 text encoder)."
     min_ram_gib = 16
     variants = [{"id": "q8-4step", "label": "q8 · 4-step · streaming"},
-                {"id": "q8-4step-refusal-v2", "label": "q8 · 4-step · refusal-reduction v2 baked in"}]
+                {"id": "q8-4step-refusal-v2-075", "label": "q8 · 4-step · refusal-reduction v2 @ 0.75 baked"},
+                {"id": "q8-4step-refusal-v2", "label": "q8 · 4-step · refusal-reduction v2 @ 1.00 baked"}]
     params = [
         {"key": "resolution", "label": "Resolution", "type": "resolution", "group": "Output",
          "sizes": [512, 768, 1024, 1280], "default_size": 1024,
