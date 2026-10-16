@@ -26,6 +26,8 @@ _BIN = os.environ.get("KREA2_STREAM_BIN",
                       os.path.expanduser("~/ComfyUI-Shared/tools/mflux-16gb/.venv/bin/mflux-generate-krea2"))
 _MODEL = os.environ.get("KREA2_STREAM_MODEL",
                         os.path.expanduser("~/ComfyUI-Shared/models/mlx/mh73772__krea-2-turbo-mflux-q8-4step"))
+# variant id -> snapshot dir; baked-LoRA variants are hard-linked siblings made by tools/bake_krea2_lora.py
+_VARIANT_DIRS = {"q8-4step": _MODEL, "q8-4step-refusal-v2": _MODEL + "__refusal-v2"}
 _PROGRESS = re.compile(r"(\d+)/(\d+) \[")   # tqdm: " 50%|█████     | 2/4 [00:20<00:20, ...]"
 
 
@@ -35,7 +37,8 @@ class Krea2StreamBackend(Backend):
     info = "Streams the transformer from disk block by block — 1024² fits in 16 GB. Runs in its own process."
     prompt_note = "Understands Korean and other languages natively (Qwen3 text encoder)."
     min_ram_gib = 16
-    variants = [{"id": "q8-4step", "label": "q8 · 4-step LoRA merged · streaming"}]
+    variants = [{"id": "q8-4step", "label": "q8 · 4-step · streaming"},
+                {"id": "q8-4step-refusal-v2", "label": "q8 · 4-step · refusal-reduction v2 baked in"}]
     params = [
         {"key": "resolution", "label": "Resolution", "type": "resolution", "group": "Output",
          "sizes": [512, 768, 1024, 1280], "default_size": 1024,
@@ -49,7 +52,9 @@ class Krea2StreamBackend(Backend):
          "min": 1, "max": 1, "step": 0.5, "default": 1.0, "fixed": True,
          "hint": "Distilled — CFG off (mflux expresses that as guidance 1.0)."},
         {"key": "sampler", "label": "Sampler", "type": "select", "group": "Sampling",
-         "options": [{"value": "euler", "label": "Euler (flow-match)"}], "default": "euler", "fixed": True},
+         "options": [{"value": "er_sde", "label": "ER-SDE (Turbo default, stochastic)"},
+                     {"value": "euler", "label": "Euler (flow-match, deterministic)"}], "default": "er_sde",
+         "hint": "The two samplers this engine implements; both use Krea's dynamic-shift flow schedule."},
         *_lora_params(),   # applied at runtime (--no-bake-lora): the only LoRA mode compatible with streaming
     ]
 
@@ -57,13 +62,20 @@ class Krea2StreamBackend(Backend):
     def is_available(cls) -> bool:
         return os.path.exists(_BIN) and os.path.isdir(os.path.join(_MODEL, "transformer"))
 
+    def is_installed(self, variant):
+        return os.path.isdir(os.path.join(_VARIANT_DIRS.get(variant, ""), "transformer"))
+
     def generate(self, *, prompt, variant, params, step_callback):
         n = int(params.get("num_images", 1))
         seed = int(params.get("seed", 0))
         steps = int(params.get("steps", 4))
         with tempfile.TemporaryDirectory(prefix="krea2stream-") as out:
-            cmd = [_BIN, "--model", _MODEL, "--base-model", "krea-2", "--block-streaming",
-                   "--steps", str(steps), "--scheduler", "euler", "--guidance", "1.0",
+            model = _VARIANT_DIRS.get(variant, _MODEL)
+            if not self.is_installed(variant):
+                raise ValueError(f"Variant '{variant}' isn't on disk ({model}).")
+            sampler = params.get("sampler") if params.get("sampler") in ("er_sde", "euler") else "er_sde"
+            cmd = [_BIN, "--model", model, "--base-model", "krea-2", "--block-streaming",
+                   "--steps", str(steps), "--scheduler", sampler, "--guidance", "1.0",
                    "--width", str(int(params.get("width", 1024))), "--height", str(int(params.get("height", 1024))),
                    "--prompt", prompt, "--output", os.path.join(out, "image.png"),
                    "--seed", *[str(seed + i) for i in range(n)]]

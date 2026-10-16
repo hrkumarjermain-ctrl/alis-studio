@@ -253,7 +253,7 @@ def _safe_id(gid: str) -> bool:
 
 # ---------------------------------------------------------------------------- LoRA library
 def _lora_dir() -> str:
-    d = os.path.join(os.path.expanduser("~/Library/Application Support/Alis Studio"), "loras")
+    d = os.environ.get("ALIS_LORA_DIR") or os.path.join(os.path.expanduser("~/Library/Application Support/Alis Studio"), "loras")
     os.makedirs(d, exist_ok=True)
     return d
 
