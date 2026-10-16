@@ -23,7 +23,7 @@ class Krea2Backend(Backend):
     ]
     params = [
         {"key": "resolution", "label": "Resolution", "type": "resolution", "group": "Output",
-         "sizes": [512, 768, 1024, 1280, 1536, 2048], "default_size": 1024,   # Krea 2 Turbo is a native 1K–2K model
+         "sizes": [512, 768, 1024, 1280, 1536, 2048], "default_size": 512,    # local: 16 GB Mac — 1024² is too much (upstream default 1024)
          "aspects": ["1:1", "3:2", "2:3", "16:9", "9:16"], "default_aspect": "1:1",
          "min": 256, "max": 2048, "multiple": 16},
         {"key": "steps", "label": "Steps", "type": "int", "group": "Output",
